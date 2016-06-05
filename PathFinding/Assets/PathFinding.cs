@@ -1,9 +1,10 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using UnityEngine;
 
-public class PathFinding : MonoBehaviour {
+public class PathFinding : MonoBehaviour
+{
     //宽度
     const int WIDTH = 40;
 
@@ -11,38 +12,50 @@ public class PathFinding : MonoBehaviour {
     const int HEIGHT = 30;
 
     //相邻节点
-    class Neighbour {
-        public Vector2 offset;
+    class Neighbour
+    {
+        public int offsetX;
+        public int offsetY;
         public int distance;
 
-        public Neighbour(Vector2 offset, int distance) {
-            this.offset = offset;
+        public Neighbour(int offsetX, int offsetY, int distance)
+        {
+            this.offsetX = offsetX;
+            this.offsetY = offsetY;
             this.distance = distance;
         }
     }
 
     //相邻节点列表
     Neighbour[] neighbourList = {
-        new Neighbour(
-            new Vector2(-1, 0),
-            1
-        ),
-         new Neighbour(
-            new Vector2(0, 1),
-            1
-        ),
-         new Neighbour(
-            new Vector2(1, 0),
-            1
-        ),
-         new Neighbour(
-            new Vector2(0, -1),
-            1
-        ),
+        //左
+        new Neighbour(-1, 0, 10),
+
+        //左上
+        new Neighbour(-1, 1, 14),
+
+        //上
+        new Neighbour(0, 1, 10),
+
+        //右上
+        new Neighbour(1, 1, 14),
+
+        //右
+        new Neighbour(1, 0, 10),
+
+        //右下
+        new Neighbour(1, -1, 14),
+
+        //下
+        new Neighbour(0, -1, 10),
+
+        //左下
+        new Neighbour(-1, -1, 14),
     };
 
     //搜索类型
-    private enum SearchAlgorithm {
+    private enum SearchAlgorithm
+    {
         [Description("深度优先搜索")]
         DepthFirst,
 
@@ -57,9 +70,13 @@ public class PathFinding : MonoBehaviour {
     }
 
     //节点
-    public class Node {
-        //位置
-        public Vector2 pos;
+    public class Node
+    {
+        //横坐标
+        public int x;
+
+        //纵坐标
+        public int y;
 
         //距离起点的距离
         public int costG;
@@ -74,15 +91,18 @@ public class PathFinding : MonoBehaviour {
         public Node parent;
 
         //到起点的距离加到终点的估值
-        public int costF {
-            get {
+        public int costF
+        {
+            get
+            {
                 return costG + costH;
             }
         }
 
         //方便调试
-        public override string ToString() {
-            return string.Format("{0}, {1}", pos.x, pos.y);
+        public override string ToString()
+        {
+            return string.Format("{0}, {1}", x, y);
         }
     }
 
@@ -93,7 +113,7 @@ public class PathFinding : MonoBehaviour {
     private List<Node> openList = new List<Node>();
 
     //关闭列表
-    private List<Node> closeList = new List<Node>();
+    private HashSet<Node> closeList = new HashSet<Node>();
 
     //起点
     public Node start;
@@ -116,15 +136,20 @@ public class PathFinding : MonoBehaviour {
     //当前搜索协程
     private Coroutine searchingCoroutine;
 
-    void Awake() {
+    void Awake()
+    {
         //关闭垂直同步
         QualitySettings.vSyncCount = 0;
 
         //初始化格子地图
-        for (int x = 0; x < WIDTH; x++) {
-            for (int y = 0; y < HEIGHT; y++) {
-                Node node = new Node {
-                    pos = new Vector2(x, y),
+        for (int x = 0; x < WIDTH; x++)
+        {
+            for (int y = 0; y < HEIGHT; y++)
+            {
+                Node node = new Node
+                {
+                    x = x,
+                    y = y
                 };
 
                 gridMap[x, y] = node;
@@ -137,12 +162,14 @@ public class PathFinding : MonoBehaviour {
         end = gridMap[WIDTH - 1, HEIGHT - 1];
     }
 
-    void Start() {
+    void Start()
+    {
 
     }
 
     //开始搜索
-    void StartSearch() {
+    void StartSearch()
+    {
         StopSearch();
         current = null;
 
@@ -151,45 +178,55 @@ public class PathFinding : MonoBehaviour {
     }
 
     //停止搜索
-    void StopSearch() {
+    void StopSearch()
+    {
         searching = false;
-        if (searchingCoroutine != null) {
+        if (searchingCoroutine != null)
+        {
             StopCoroutine(searchingCoroutine);
         }
     }
 
     //根据坐标取节点
-    Node ConvertToNode(Vector3 mousePosition) {
+    Node PosToNode(Vector3 mousePosition)
+    {
         var screePosition = Camera.main.ScreenToWorldPoint(mousePosition);
         int x = (int)screePosition.x;
         int y = (int)screePosition.y;
-        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
+        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT)
+        {
             return gridMap[x, y];
         }
         return null;
     }
 
     //清空开放列表
-    void ClearOpenList() {
+    void ClearOpenList()
+    {
         openList.Clear();
     }
 
     //清空关闭列表
-    void ClearCloseList() {
+    void ClearCloseList()
+    {
         closeList.Clear();
     }
 
     //清除所有阻挡
-    void ClearBlock() {
-        for (int x = 0; x < WIDTH; x++) {
-            for (int y = 0; y < HEIGHT; y++) {
+    void ClearBlock()
+    {
+        for (int x = 0; x < WIDTH; x++)
+        {
+            for (int y = 0; y < HEIGHT; y++)
+            {
                 gridMap[x, y].block = false;
             }
         }
     }
 
     //清屏
-    void Clear() {
+    void Clear()
+    {
         current = null;
 
         ClearOpenList();
@@ -197,44 +234,48 @@ public class PathFinding : MonoBehaviour {
     }
 
     //重置
-    void Reset() {
-        start = null;
-        end = null;
-        current = null;
+    void Reset()
+    {
+        Clear();
 
         ClearBlock();
-        ClearOpenList();
-        ClearCloseList();
     }
 
-    void Update() {
+    void Update()
+    {
         //深度优先搜索
-        if (Input.GetKeyDown(KeyCode.D)) {
+        if (Input.GetKeyDown(KeyCode.D))
+        {
             searchAlgorithm = SearchAlgorithm.DepthFirst;
             StartSearch();
         }
         //广度优先搜索
-        else if (Input.GetKeyDown(KeyCode.B)) {
+        else if (Input.GetKeyDown(KeyCode.B))
+        {
             searchAlgorithm = SearchAlgorithm.BreadthFirst;
             StartSearch();
         }
         //迪杰斯特拉搜索
-        else if (Input.GetKeyDown(KeyCode.J)) {
+        else if (Input.GetKeyDown(KeyCode.J))
+        {
             searchAlgorithm = SearchAlgorithm.Dijkstra;
             StartSearch();
         }
         //A星搜索
-        else if (Input.GetKeyDown(KeyCode.A)) {
+        else if (Input.GetKeyDown(KeyCode.A))
+        {
             searchAlgorithm = SearchAlgorithm.AStar;
             StartSearch();
         }
         //清屏
-        else if (Input.GetKeyDown(KeyCode.C)) {
+        else if (Input.GetKeyDown(KeyCode.C))
+        {
             StopSearch();
             Clear();
         }
         //重置
-        else if (Input.GetKeyDown(KeyCode.R)) {
+        else if (Input.GetKeyDown(KeyCode.R))
+        {
             StopSearch();
             Reset();
         }
@@ -243,19 +284,24 @@ public class PathFinding : MonoBehaviour {
         bool mouse0 = Input.GetKeyDown(KeyCode.Mouse0);
         bool mouse1 = Input.GetKeyDown(KeyCode.Mouse1);
 
-        if (!searching) {
+        if (!searching)
+        {
             //左键设置起点
-            if (mouse0) {
-                var node = ConvertToNode(mousePosition);
-                if (node != null) {
+            if (mouse0)
+            {
+                var node = PosToNode(mousePosition);
+                if (node != null)
+                {
                     start = node;
                     start.block = false;
                 }
             }
             //右键设置终点
-            else if (mouse1) {
-                var node = ConvertToNode(mousePosition);
-                if (node != null) {
+            else if (mouse1)
+            {
+                var node = PosToNode(mousePosition);
+                if (node != null)
+                {
                     end = node;
                     end.block = false;
                 }
@@ -265,9 +311,11 @@ public class PathFinding : MonoBehaviour {
             bool leftAlt = Input.GetKey(KeyCode.LeftShift);
 
             //按照ctrl设置阻挡，按住shift清除阻挡
-            if (leftControl || leftAlt) {
-                var node = ConvertToNode(mousePosition);
-                if (node != null && node != start && node != end) {
+            if (leftControl || leftAlt)
+            {
+                var node = PosToNode(mousePosition);
+                if (node != null && node != start && node != end)
+                {
                     node.block = leftControl;
                 }
             }
@@ -275,21 +323,24 @@ public class PathFinding : MonoBehaviour {
     }
 
     //搜索协程
-    IEnumerator SearchCoroutine() {
+    IEnumerator SearchCoroutine()
+    {
         Clear();
 
         //清空父节点
-        foreach (var node in gridMap) {
+        foreach (var node in gridMap)
+        {
             node.parent = null;
         }
 
         start.parent = start;
         start.costG = 0;
-        start.costH = Mathf.Abs((int)(end.pos.x - end.pos.x)) + Mathf.Abs((int)(end.pos.y - end.pos.x));
         openList.Add(start);
 
-        while (searching) {
-            if (openList.Count == 0) {
+        while (searching)
+        {
+            if (openList.Count == 0)
+            {
                 Debug.Log("no path");
                 break;
             }
@@ -297,33 +348,40 @@ public class PathFinding : MonoBehaviour {
             int nextNodeIndex = 0;
 
             //从开放列表选取下一个节点
-            switch (searchAlgorithm) {
+            switch (searchAlgorithm)
+            {
                 case SearchAlgorithm.DepthFirst:
                     //深度优先搜索后进先出，可以优化为栈(Stack)
                     nextNodeIndex = openList.Count - 1;
                     break;
                 case SearchAlgorithm.BreadthFirst:
-                    //广度优先搜索先进先出，可以优化为队列
+                    //广度优先搜索先进先出，可以优化为队列(Queue)
                     nextNodeIndex = 0;
                     break;
-                //迪杰斯特拉从开放列表找离起点最近的节点
-                case SearchAlgorithm.Dijkstra: {
+                //迪杰斯特拉从开放列表找离起点最近的节点，可以优化为优先队列(PriorityQueue)
+                case SearchAlgorithm.Dijkstra:
+                    {
                         nextNodeIndex = openList.Count - 1;
-                        int minCostG = openList[nextNodeIndex].costG;
-                        for (int i = openList.Count - 1; i >= 0; i--) {
-                            if (openList[i].costG < minCostG) {
+                        int minCostG = openList[nextNodeIndex].costF;
+                        for (int i = openList.Count - 1; i >= 0; i--)
+                        {
+                            if (openList[i].costG < minCostG)
+                            {
                                 minCostG = openList[i].costG;
                                 nextNodeIndex = i;
                             }
                         }
                     }
                     break;
-                //A星从开放列表找离起点距离加离终点估值最小的节点
-                case SearchAlgorithm.AStar: {
+                //A星从开放列表找离起点距离加离终点估值最小的节点，可以优化为优先队列(PriorityQueue)
+                case SearchAlgorithm.AStar:
+                    {
                         nextNodeIndex = openList.Count - 1;
                         int minCostF = openList[nextNodeIndex].costF;
-                        for (int i = openList.Count - 1; i >= 0; i--) {
-                            if (openList[i].costF < minCostF) {
+                        for (int i = openList.Count - 1; i >= 0; i--)
+                        {
+                            if (openList[i].costF < minCostF)
+                            {
                                 minCostF = openList[i].costF;
                                 nextNodeIndex = i;
                             }
@@ -336,38 +394,58 @@ public class PathFinding : MonoBehaviour {
 
             current = openList[nextNodeIndex];
 
+            //Debug.LogFormat("index:{0}, g:{1}, h:{2}, f:{3}", nextNodeIndex, current.costG, current.costH, current.costF);
             //找到路径
-            if (current == end) {
+            if (current == end)
+            {
                 break;
             }
 
             //把当前节点从开放列表删除，加入关闭列表
-            openList.Remove(current);
+            openList.RemoveAt(nextNodeIndex);
             closeList.Add(current);
 
             //对当前节点邻居展开加入开放列表
-            for (int i = 0; i < neighbourList.Length; i++) {
-                var offset = neighbourList[i].offset;
-                int x = (int)(current.pos.x + offset.x);
-                int y = (int)(current.pos.y + offset.y);
+            for (int i = 0; i < neighbourList.Length; i++)
+            {
+                var neighbourNode = neighbourList[i];
+                int x = current.x + neighbourNode.offsetX;
+                int y = current.y + neighbourNode.offsetY;
 
-                if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
+                if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT)
+                {
                     var node = gridMap[x, y];
-                    if (!node.block && !closeList.Contains(node)) {
-                        if (!openList.Contains(node)) {
+                    if (!node.block && !closeList.Contains(node))
+                    {
+                        if (!openList.Contains(node))
+                        {
                             node.parent = current;
-                            node.costG = current.costG + neighbourList[i].distance;
-                            node.costH = Mathf.Abs((int)(end.pos.x - node.pos.x)) + Mathf.Abs((int)(end.pos.y - node.pos.y));
-                            switch (searchAlgorithm) {
-                                case SearchAlgorithm.DepthFirst: {
+                            node.costG = current.costG + neighbourNode.distance;
+                            int dx = Mathf.Abs(end.x - node.x);
+                            int dy = Mathf.Abs(end.y - node.y);
+
+                            //直线移动的格子的花费为1，斜线移动的格子的花费为1.4
+                            if (dx > dy)
+                            {
+                                node.costH = 10 * (dx - dy) + 14 * dy;
+                            }
+                            else
+                            {
+                                node.costH = 10 * (dy - dx) + 14 * dx;
+                            }
+                            switch (searchAlgorithm)
+                            {
+                                case SearchAlgorithm.DepthFirst:
+                                    {
                                         //深度优先搜索后进先出，可以优化为栈(Stack)
                                         openList.Add(node);
                                     }
                                     break;
                                 case SearchAlgorithm.Dijkstra:
                                 case SearchAlgorithm.AStar:
-                                case SearchAlgorithm.BreadthFirst: {
-                                        //广度优先搜索先进先出，可以优化为队列
+                                case SearchAlgorithm.BreadthFirst:
+                                    {
+                                        //广度优先搜索先进先出，可以优化为队列(Queue)
                                         openList.Add(node);
                                     }
                                     break;
@@ -377,9 +455,11 @@ public class PathFinding : MonoBehaviour {
                         }
                         else {
                             //迪杰斯特拉和A星遇到已在开放列表中的邻居节点，但从此处到达G值更低的，重新计算该邻居节点的G值并调整该节点的父节点为当前节点
-                            if (searchAlgorithm == SearchAlgorithm.DepthFirst || searchAlgorithm == SearchAlgorithm.AStar) {
-                                int costG = current.costG + neighbourList[i].distance;
-                                if (costG < node.costG) {
+                            if (searchAlgorithm == SearchAlgorithm.DepthFirst || searchAlgorithm == SearchAlgorithm.AStar)
+                            {
+                                int costG = current.costG + neighbourNode.distance;
+                                if (costG < node.costG)
+                                {
                                     node.costG = costG;
                                     node.parent = current;
                                 }
@@ -389,19 +469,22 @@ public class PathFinding : MonoBehaviour {
                 }
             }
 
-            if (period > 0) {
+            if (period > 0)
+            {
                 yield return new WaitForSeconds(period);
             }
         }
     }
 
     //画矩形
-    void DrawRectangle(float x, float y, Color color) {
+    void DrawRectangle(float x, float y, Color color)
+    {
         DrawRectangle(x, y, color, 0.5f);
     }
 
     //画矩形
-    void DrawRectangle(float x, float y, Color color, float size) {
+    void DrawRectangle(float x, float y, Color color, float size)
+    {
         Gizmos.color = color;
         Vector3 center = new Vector3(x, y);
         Vector3 leftTop = center + new Vector3(-size, size);
@@ -416,22 +499,28 @@ public class PathFinding : MonoBehaviour {
     }
 
     //画球体
-    void DrawSphere(float x, float y, Color color) {
+    void DrawSphere(float x, float y, Color color)
+    {
         Gizmos.color = color;
         Gizmos.DrawSphere(new Vector3(x, y), 0.5f);
     }
 
     //绘制格子地图
-    void DrawGridMap() {
-        for (int x = 0; x < WIDTH; x++) {
-            for (int y = 0; y < HEIGHT; y++) {
+    void DrawGridMap()
+    {
+        for (int x = 0; x < WIDTH; x++)
+        {
+            for (int y = 0; y < HEIGHT; y++)
+            {
                 Node node = gridMap[x, y];
-                if (node != null) {
-                    if (node.block) {
-                        DrawSphere(node.pos.x, node.pos.y, Color.black);
+                if (node != null)
+                {
+                    if (node.block)
+                    {
+                        DrawSphere(node.x, node.y, Color.black);
                     }
                     else {
-                        DrawRectangle(node.pos.x, node.pos.y, Color.black);
+                        DrawRectangle(node.x, node.y, Color.black);
                     }
                 }
             }
@@ -439,53 +528,66 @@ public class PathFinding : MonoBehaviour {
     }
 
     //绘制开放列表
-    void DrawOpenList() {
-        foreach (var node in openList) {
-            DrawRectangle(node.pos.x, node.pos.y, Color.green);
+    void DrawOpenList()
+    {
+        foreach (var node in openList)
+        {
+            DrawRectangle(node.x, node.y, Color.green);
         }
     }
 
     //绘制关闭列表
-    void DrawCloseList() {
-        foreach (var node in closeList) {
-            DrawSphere(node.pos.x, node.pos.y, Color.gray);
+    void DrawCloseList()
+    {
+        foreach (var node in closeList)
+        {
+            DrawSphere(node.x, node.y, Color.gray);
         }
     }
 
     //绘制起点
-    void DrawStart() {
-        if (start != null) {
-            DrawSphere(start.pos.x, start.pos.y, Color.green);
+    void DrawStart()
+    {
+        if (start != null)
+        {
+            DrawSphere(start.x, start.y, Color.green);
         }
     }
 
     //绘制终点
-    void DrawEnd() {
-        if (end != null) {
-            DrawSphere(end.pos.x, end.pos.y, Color.red);
+    void DrawEnd()
+    {
+        if (end != null)
+        {
+            DrawSphere(end.x, end.y, Color.red);
         }
     }
 
     //绘制当前点
-    void DrawCurrent() {
-        if (current != null) {
-            DrawSphere(current.pos.x, current.pos.y, Color.yellow);
+    void DrawCurrent()
+    {
+        if (current != null)
+        {
+            DrawSphere(current.x, current.y, Color.yellow);
         }
     }
 
     //绘制路径
-    void DrawPath() {
+    void DrawPath()
+    {
         Gizmos.color = Color.green;
         Node lastNode = current;
-        while (lastNode != null && lastNode != start) {
+        while (lastNode != null && lastNode != start)
+        {
             var node1 = lastNode;
             var node2 = lastNode.parent;
-            Gizmos.DrawLine(new Vector3(node1.pos.x, node1.pos.y), new Vector3(node2.pos.x, node2.pos.y));
+            Gizmos.DrawLine(new Vector3(node1.x, node1.y), new Vector3(node2.x, node2.y));
             lastNode = lastNode.parent;
         }
     }
 
-    void OnDrawGizmos() {
+    void OnDrawGizmos()
+    {
         DrawGridMap();
 
         DrawOpenList();
@@ -501,7 +603,8 @@ public class PathFinding : MonoBehaviour {
         DrawPath();
     }
 
-    void OnGUI() {
+    void OnGUI()
+    {
         GUI.Label(new Rect(new Vector2(10, 10), new Vector2(300, 500)), "寻路算法演示(需在Game窗口打开Gizmos)\n左键设置起点\n右键设置终点\nC清屏\nR重置\n按住Ctrl拖动鼠标设置阻挡\n按住Shift拖动鼠标清除阻挡\nD开始深度优先搜索\nB开始广度优先搜索\nD开始迪杰斯特拉搜索\nA开始A*搜索\n");
     }
 }
